@@ -45,9 +45,10 @@ func Validate(iin string) (bool, error) {
 		return false, errors.New("invalid format of 7th digit (century)")
 	}
 
-	if century == 1 || century == 2 {
+	switch century {
+	case 1, 2:
 		year += 1900
-	} else if century == 3 || century == 4 {
+	case 3, 4:
 		year += 2000
 	}
 
@@ -65,7 +66,7 @@ func controlDigit(iin string) (bool, error) {
 	sum := 0
 
 	// Compute weighted sum using the first coefficient sequence.
-	for i := 0; i < 11; i++ {
+	for i := range 11 {
 		digit, err := strconv.Atoi(string(iin[i]))
 		if err != nil {
 			return false, err
@@ -79,7 +80,7 @@ func controlDigit(iin string) (bool, error) {
 	// If checksum is 10, recalculate using the second coefficient sequence.
 	if controlDigit == 10 {
 		sum = 0
-		for i := 0; i < 11; i++ {
+		for i := range 11 {
 			digit, _ := strconv.Atoi(string(iin[i]))
 			t := (i + 3) % 11
 			if t == 0 {
