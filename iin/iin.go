@@ -81,7 +81,10 @@ func controlDigit(iin string) (bool, error) {
 	if controlDigit == 10 {
 		sum = 0
 		for i := range 11 {
-			digit, _ := strconv.Atoi(string(iin[i]))
+			digit, err := strconv.Atoi(string(iin[i]))
+			if err != nil {
+				return false, err
+			}
 			t := (i + 3) % 11
 			if t == 0 {
 				t = 11
@@ -97,7 +100,10 @@ func controlDigit(iin string) (bool, error) {
 	}
 
 	// Compare calculated checksum with the last IIN digit.
-	lastDigit, _ := strconv.Atoi(string(iin[11]))
+	lastDigit, err := strconv.Atoi(string(iin[11]))
+	if err != nil {
+		return false, err
+	}
 	if controlDigit == lastDigit {
 		return true, nil
 	} else {
