@@ -75,10 +75,10 @@ func controlDigit(iin string) (bool, error) {
 	}
 
 	// Calculate checksum digit.
-	controlDigit := sum % 11
+	checksumDigit := sum % 11
 
 	// If checksum is 10, recalculate using the second coefficient sequence.
-	if controlDigit == 10 {
+	if checksumDigit == 10 {
 		sum = 0
 		for i := range 11 {
 			digit, err := strconv.Atoi(string(iin[i]))
@@ -91,10 +91,10 @@ func controlDigit(iin string) (bool, error) {
 			}
 			sum += digit * t
 		}
-		controlDigit = sum % 11
+		checksumDigit = sum % 11
 
 		// If checksum is still 10, the IIN is invalid.
-		if controlDigit == 10 {
+		if checksumDigit == 10 {
 			return false, errors.New("invalid control digit")
 		}
 	}
@@ -104,7 +104,7 @@ func controlDigit(iin string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if controlDigit == lastDigit {
+	if checksumDigit == lastDigit {
 		return true, nil
 	} else {
 		return false, errors.New("invalid control digit")
