@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+var (
+	ErrInvalidLength       = errors.New("iin must contain 12 digits")
+	ErrNonNumeric          = errors.New("iin must contain only digits")
+	ErrInvalidYearFormat   = errors.New("invalid year format")
+	ErrInvalidMonthFormat  = errors.New("invalid month format")
+	ErrInvalidDayFormat    = errors.New("invalid day format")
+	ErrInvalidCenturyDigit = errors.New("invalid format of 7th digit (century)")
+	ErrInvalidDate         = errors.New("invalid date")
+	ErrInvalidControlDigit = errors.New("invalid control digit")
+)
+
 // Validate reports whether iin is a valid 12-digit Kazakhstan IIN.
 //
 // It validates the length and numeric format, checks whether the encoded birth
@@ -15,34 +26,34 @@ import (
 func Validate(iin string) (bool, error) {
 	// Check IIN length.
 	if len(iin) != 12 {
-		return false, errors.New("iin must contain 12 digits")
+		return false, ErrInvalidLength
 	}
 
 	// Check that all characters are digits.
 	for _, char := range iin {
 		if char < '0' || char > '9' {
-			return false, errors.New("iin must contain only digits")
+			return false, ErrNonNumeric
 		}
 	}
 
 	// Parse birth date from the first 6 digits.
 	year, err := strconv.Atoi(iin[0:2])
 	if err != nil {
-		return false, errors.New("invalid year format")
+		return false, ErrInvalidYearFormat
 	}
 	month, err := strconv.Atoi(iin[2:4])
 	if err != nil {
-		return false, errors.New("invalid month format")
+		return false, ErrInvalidMonthFormat
 	}
 	day, err := strconv.Atoi(iin[4:6])
 	if err != nil {
-		return false, errors.New("invalid day format")
+		return false, ErrInvalidDayFormat
 	}
 
 	// Determine century from the 7th digit.
 	century, err := strconv.Atoi(string(iin[6]))
 	if err != nil || century < 1 || century > 6 {
-		return false, errors.New("invalid format of 7th digit (century)")
+		return false, ErrInvalidCenturyDigit
 	}
 
 	switch century {
@@ -53,8 +64,9 @@ func Validate(iin string) (bool, error) {
 	}
 
 	// Validate the parsed date.
-	if _, err := time.Parse("2006-01-02", fmt.Sprintf("%04d-%02d-%02d", year, month, day)); err != nil {
-		return false, errors.New("invalid date")
+	_, err = time.Parse("2006-01-02", fmt.Sprintf("%04d-%02d-%02d", year, month, day))
+	if  err != nil {
+		return false, ErrInvalidDate
 	}
 
 	// Validate checksum digit.
@@ -67,11 +79,7 @@ func controlDigit(iin string) (bool, error) {
 
 	// Compute weighted sum using the first coefficient sequence.
 	for i := range 11 {
-		digit, err := strconv.Atoi(string(iin[i]))
-		if err != nil {
-			return false, err
-		}
-		sum += digit * (i + 1)
+		sum += int(iin[i]-'0') * (i + 1)
 	}
 
 	// Calculate checksum digit.
@@ -81,32 +89,23 @@ func controlDigit(iin string) (bool, error) {
 	if checksumDigit == 10 {
 		sum = 0
 		for i := range 11 {
-			digit, err := strconv.Atoi(string(iin[i]))
-			if err != nil {
-				return false, err
-			}
 			t := (i + 3) % 11
 			if t == 0 {
 				t = 11
 			}
-			sum += digit * t
+			sum += int(iin[i]-'0') * t
 		}
 		checksumDigit = sum % 11
 
 		// If checksum is still 10, the IIN is invalid.
 		if checksumDigit == 10 {
-			return false, errors.New("invalid control digit")
+			return false, ErrInvalidControlDigit
 		}
 	}
 
 	// Compare calculated checksum with the last IIN digit.
-	lastDigit, err := strconv.Atoi(string(iin[11]))
-	if err != nil {
-		return false, err
-	}
-	if checksumDigit == lastDigit {
+	if checksumDigit == int(iin[11]-'0') {
 		return true, nil
-	} else {
-		return false, errors.New("invalid control digit")
 	}
+	return false, ErrInvalidControlDigit
 }
